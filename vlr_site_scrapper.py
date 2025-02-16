@@ -1,8 +1,31 @@
+import functions_framework
 import requests
 from bs4 import BeautifulSoup
 import json
 
-# Function to scrape a single page
+@functions_framework.http
+def get_vlr_matches(request):
+    all_matches = []
+    current_page = 1
+
+    # URL of the first page to scrape
+    url = 'https://www.vlr.gg/matches'
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, 'html.parser')
+    total_pages = get_total_pages(soup)
+    all_matches.extend(scrape_page(url))
+
+    # Loop through all pages
+    for current_page in range(1, total_pages+1):
+        print("Scraping " + url)
+        all_matches.extend(scrape_page(url))
+        url = 'https://www.vlr.gg/matches?page=' + str(current_page + 1)
+
+    # Convert the matches list to JSON
+    matches_json = json.dumps(all_matches, indent=4)
+
+    return matches_json
+
 def scrape_page(url):
     response = requests.get(url)
     
@@ -51,30 +74,3 @@ def get_total_pages(soup):
     if page_numbers:
         return int(page_numbers[-1].get_text(strip=True))
     return 1
-    
-
-
-all_matches = []
-current_page = 1
-
-# URL of the first page to scrape
-url = 'https://www.vlr.gg/matches'
-response = requests.get(url)
-soup = BeautifulSoup(response.content, 'html.parser')
-total_pages = get_total_pages(soup)
-all_matches.extend(scrape_page(url))
-
-# Loop through all pages
-for current_page in range(1, total_pages+1):
-    print("Scrapping "+url)
-    all_matches.extend(scrape_page(url))
-    url = 'https://www.vlr.gg/matches?page='+str(current_page+1)
-
-# Convert the matches list to JSON
-matches_json = json.dumps(all_matches, indent=4)
-
-# Save the JSON to a file
-with open('matches.json', 'w') as json_file:
-    json_file.write(matches_json)
-
-print('Matches data saved to matches.json')
